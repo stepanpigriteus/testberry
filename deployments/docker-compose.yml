@@ -9,7 +9,6 @@ services:
       POSTGRES_PASSWORD: order_password
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./deployments/sql/init.sql:/docker-entrypoint-initdb.d/init.sql
     ports:
       - "5432:5432"
     healthcheck:
@@ -17,6 +16,21 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
+    networks:
+      - order-network
+
+  migrate:
+    image: migrate/migrate:v4.15.2
+    volumes:
+      - ./deployments/migrations:/migrations
+    command: [
+      "-path", "/migrations",
+      "-database", "postgres://order_user:order_password@postgres:5432/orders_db?sslmode=disable",
+      "up"
+    ]
+    depends_on:
+      postgres:
+        condition: service_healthy
     networks:
       - order-network
 

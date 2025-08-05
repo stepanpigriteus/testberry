@@ -11,7 +11,9 @@ type SlogAdapter struct {
 }
 
 func NewSlogAdapter() ports.Logger {
-	handler := slog.NewJSONHandler(os.Stdout, nil)
+	handler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+		Level: slog.LevelDebug,
+	})
 	slogger := slog.New(handler)
 	return &SlogAdapter{logger: slogger}
 }
