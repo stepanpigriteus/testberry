@@ -37,10 +37,25 @@ func NewService(repo *postgres.Repository, cache *cache.Cache, consumer *message
 
 func (s *Service) GetOrder(ctx context.Context, orderUID string) (order_entity.Order, error) {
 	s.logger.Info("GetOrderService called")
-	if order, exists, err := s.cache.Get(ctx, orderUID); err == nil && exists {
+	order, exists, err := s.cache.Get(ctx, orderUID)
+	if err != nil {
+		return order, err
+	}
+	if exists {
 		return order, nil
 	}
-	return s.repo.GetOrderByID(ctx, orderUID)
+	order, err = s.repo.GetOrderByID(ctx, orderUID)
+	if err != nil {
+		s.logger.Error("Failed GetOrderService(err in GerOrderRepo)", err)
+		return order, err
+	}
+	err = s.cache.Set(ctx, order)
+	if err != nil {
+		s.logger.Error("Error setting the value in the cache", err)
+		return order, err
+	}
+
+	return order, nil
 }
 
 func (s *Service) SaveOrder(ctx context.Context) error {
@@ -102,6 +117,6 @@ func (s *Service) Start(ctx context.Context) error {
 		}
 	}
 
-	s.logger.Info("Cache restored successfully")
+	s.logger.Info("Cache restored successfully!")
 	return nil
 }
