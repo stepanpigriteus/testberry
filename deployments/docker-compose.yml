@@ -1,6 +1,42 @@
 version: '3.9'
 
 services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.4.0
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - order-network
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "2181"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  kafka:
+    image: confluentinc/cp-kafka:7.4.0
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_CREATE_TOPICS: "orders:1:1"
+    networks:
+      - order-network
+    healthcheck:
+      test: ["CMD", "kafka-topics", "--bootstrap-server", "localhost:9092", "--list"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+
   postgres:
     image: postgres:16
     environment:
@@ -57,13 +93,17 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      kafka:
+        condition: service_healthy
     environment:
+
       DB_HOST: postgres
       DB_PORT: 5432
       DB_NAME: orders_db
       DB_USER: order_user
       DB_PASSWORD: order_password
       DB_SSLMODE: disable
+      
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: ""
@@ -73,6 +113,10 @@ services:
       REDIS_WRITE_TIMEOUT: 3s
       REDIS_POOL_SIZE: 10
       REDIS_TLS: false
+      
+      KAFKA_BROKERS: kafka:29092
+      KAFKA_TOPIC: orders
+      KAFKA_CONSUMER_GROUP: my-consumer-group
     ports:
       - "8081:8081"
     networks:

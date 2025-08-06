@@ -12,19 +12,19 @@ type Consumer struct {
 	topic    string
 }
 
-func NewConsumer(brokers []string, topic string) *Consumer {
+func NewConsumer(brokers []string, topic string) (*Consumer, error) {
 	config := sarama.NewConfig()
 	config.Consumer.Return.Errors = true
 
 	consumer, err := sarama.NewConsumer(brokers, config)
 	if err != nil {
-		log.Fatalf("Ошибка создания Kafka consumer: %v", err)
+		return nil, err
 	}
 
 	return &Consumer{
 		consumer: consumer,
 		topic:    topic,
-	}
+	}, nil
 }
 
 func (c *Consumer) Consume(ctx context.Context, handler func(ctx context.Context, message []byte) error) error {
@@ -59,4 +59,8 @@ func (c *NoopConsumer) Consume(ctx context.Context, handler func(ctx context.Con
 	log.Println("NoopConsumer: Kafka is disabled, no messages will be consumed")
 	<-ctx.Done()
 	return ctx.Err()
+}
+
+func (c *Consumer) Close() error {
+	return c.consumer.Close()
 }

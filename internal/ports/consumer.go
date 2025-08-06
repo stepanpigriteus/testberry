@@ -5,5 +5,14 @@ import (
 )
 
 type MessageBroker interface {
-    Consume(ctx context.Context, handler func(ctx context.Context, message []byte) error) error
+	Consumer
+	Producer
+}
+
+type Consumer interface {
+	Consume(ctx context.Context, handler func(ctx context.Context, message []byte) error) error
+}
+
+type Producer interface {
+	Send(key string, message []byte) error
 }
