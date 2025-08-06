@@ -29,8 +29,11 @@ func (s *Server) RunServer(ctx context.Context) error {
 		os.Exit(1)
 	}
 	mux := http.NewServeMux()
+	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("front"))))
 	mux.HandleFunc("/order/", s.handler.GetOrder)
-	mux.Handle("/", http.FileServer(http.Dir("front")))
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "front/index.html")
+	})
 	server := &http.Server{
 		Addr:    s.addr,
 		Handler: mux,

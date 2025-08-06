@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Order Viewer</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f5f8fa; padding: 20px; }
+        .tweet { background: white; border: 1px solid #e1e8ed; border-radius: 10px; padding: 15px; margin-top: 20px; max-width: 500px; }
+        .header { font-weight: bold; margin-bottom: 5px; }
+        .field { margin: 5px 0; }
+        input { padding: 5px; width: 300px; }
+        button { padding: 5px 10px; }
+    </style>
+</head>
+<body>
+    <h1>Order Viewer</h1>
+    <input type="text" id="uid" placeholder="Enter Order UID">
+    <button onclick="getOrder()">Get Order</button>
+
+    <div id="result"></div>
+
+    <script>
+        async function getOrder() {
+            const uid = document.getElementById("uid").value.trim();
+            if (!uid) return alert("Enter UID!");
+
+            const res = await fetch(`http://localhost:8081/order/${uid}`);
+            if (!res.ok) return alert("Order not found");
+
+            const order = await res.json();
+
+            document.getElementById("result").innerHTML = `
+                <div class="tweet">
+                    <div class="header">Order UID: ${order.order_uid}</div>
+                    <div class="field"><strong>Customer:</strong> ${order.customer_id}</div>
+                    <div class="field"><strong>Track:</strong> ${order.track_number}</div>
+                    <div class="field"><strong>Locale:</strong> ${order.locale}</div>
+                    <div class="field"><strong>Delivery:</strong> ${order.delivery.name}, ${order.delivery.city}, ${order.delivery.address}</div>
+                    <div class="field"><strong>Items:</strong> ${order.items.map(i => i.name + " ($" + i.price + ")").join(", ")}</div>
+                    <div class="field"><strong>Total:</strong> $${order.payment.amount}</div>
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>
