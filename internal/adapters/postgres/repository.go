@@ -21,14 +21,14 @@ func NewRepository(db *sql.DB, logger ports.Logger) *Repository {
 func (r *Repository) SaveOrder(ctx context.Context, order order_entity.Order) error {
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
-		r.logger.Error("Failed to start transaction", err)
+		r.logger.Error("Failed to start transaction", "err", err)
 		return err
 	}
 	committed := false
 	defer func() {
 		if err != nil && !committed {
 			if rollbackErr := tx.Rollback(); rollbackErr != nil {
-				r.logger.Error("Failed to rollback transaction", rollbackErr)
+				r.logger.Error("Failed to rollback transaction", "err", rollbackErr)
 			}
 		}
 	}()
@@ -46,7 +46,7 @@ func (r *Repository) SaveOrder(ctx context.Context, order order_entity.Order) er
 		order.Delivery.Email,
 	).Scan(&deliveryID)
 	if err != nil {
-		r.logger.Error("Repo: Failed to insert delivery", err)
+		r.logger.Error("Repo: Failed to insert delivery","err", err)
 		return err
 	}
 
@@ -66,7 +66,7 @@ func (r *Repository) SaveOrder(ctx context.Context, order order_entity.Order) er
 		order.Payment.CustomFee,
 	).Scan(&paymentID)
 	if err != nil {
-		r.logger.Error("Repo: Failed to insert payment", err)
+		r.logger.Error("Repo: Failed to insert payment","err", err)
 		return err
 	}
 
@@ -88,7 +88,7 @@ func (r *Repository) SaveOrder(ctx context.Context, order order_entity.Order) er
 		order.OofShard,
 	)
 	if err != nil {
-		r.logger.Error("Repo: Failed to insert order", err)
+		r.logger.Error("Repo: Failed to insert order", "err", err)
 		return err
 	}
 
@@ -110,12 +110,12 @@ func (r *Repository) SaveOrder(ctx context.Context, order order_entity.Order) er
 			order.OrderUID,
 		)
 		if err != nil {
-			r.logger.Error("Repo: Failed to insert item", err)
+			r.logger.Error("Repo: Failed to insert item","err", err)
 			return err
 		}
 	}
 	if err = tx.Commit(); err != nil {
-		r.logger.Error("Repo: Failed to commit transaction", err)
+		r.logger.Error("Repo: Failed to commit transaction","err", err)
 		return fmt.Errorf("failed to commit transaction: %w", err)
 	}
 	committed = true

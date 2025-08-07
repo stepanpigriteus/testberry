@@ -36,7 +36,7 @@ func NewService(repo *postgres.Repository, cache *cache.Cache, consumer *message
 }
 
 func (s *Service) GetOrder(ctx context.Context, orderUID string) (order_entity.Order, error) {
-	s.logger.Info("GetOrderService called")
+	s.logger.Info("GetOrderService called", "uid", orderUID)
 	order, exists, err := s.cache.Get(ctx, orderUID)
 	if err != nil {
 		return order, err
@@ -46,12 +46,12 @@ func (s *Service) GetOrder(ctx context.Context, orderUID string) (order_entity.O
 	}
 	order, err = s.repo.GetOrderByID(ctx, orderUID)
 	if err != nil {
-		s.logger.Error("Failed GetOrderService(err in GerOrderRepo)", err)
+		s.logger.Error("Failed GetOrderService(err in GerOrderRepo)", "err", err)
 		return order, err
 	}
 	err = s.cache.Set(ctx, order)
 	if err != nil {
-		s.logger.Error("Error setting the value in the cache", err)
+		s.logger.Error("Error setting the value in the cache", "err", err)
 		return order, err
 	}
 
@@ -62,23 +62,23 @@ func (s *Service) SaveOrder(ctx context.Context) error {
 	messageHandler := func(ctx context.Context, message []byte) error {
 		var order order_entity.Order
 		if err := json.Unmarshal(message, &order); err != nil {
-			s.logger.Error("Failed to unmarshal order message:", err)
+			s.logger.Error("Failed to unmarshal order message:", "err", err)
 			return err
 		}
 
 		if err := s.validator.Struct(order); err != nil {
-			s.logger.Error("Order isn't valid:", err)
+			s.logger.Error("Order isn't valid:", "err", err)
 			return err
 		}
 		if err := s.repo.SaveOrder(ctx, order); err != nil {
-			s.logger.Error("Order not saved to database:", err)
+			s.logger.Error("Order not saved to database:", "err", err)
 			return err
 		}
 		if err := s.cache.Set(ctx, order); err != nil {
-			s.logger.Error("Order not saved to cache:", err)
+			s.logger.Error("Order not saved to cache:", "err", err)
 		}
 
-		s.logger.Info("Order successfully processed:", order.OrderUID)
+		s.logger.Info("Order successfully processed:", "uid", order.OrderUID)
 		return nil
 	}
 
@@ -89,15 +89,15 @@ func (s *Service) SendRandomOrder(ctx context.Context) error {
 	order := s.generateRandomOrder()
 	orderJSON, err := json.Marshal(order)
 	if err != nil {
-		s.logger.Error("Failed to marshal order:", err)
+		s.logger.Error("Failed to marshal order:", "err", err)
 		return fmt.Errorf("failed to marshal order: %w", err)
 	}
 	if err := s.producer.Send(order.OrderUID, orderJSON); err != nil {
-		s.logger.Error("Failed to send order to producer:", err)
+		s.logger.Error("Failed to send order to producer:", "err", err)
 		return fmt.Errorf("failed to send order to producer: %w", err)
 	}
 
-	s.logger.Info("Order sent successfully:", order.OrderUID)
+	s.logger.Info("Order sent successfully:", "uid", order.OrderUID)
 	return nil
 }
 
@@ -113,10 +113,10 @@ func (s *Service) Start(ctx context.Context) error {
 
 	for _, order := range orders {
 		if err := s.cache.Set(ctx, order); err != nil {
-			s.logger.Error("Failed to restore order to cache:", err)
+			s.logger.Error("Failed to restore order to cache:", "err", err)
 		}
 	}
 
-	s.logger.Info("Cache restored successfully!")
+	s.logger.Info("Cache restored successfully!", "OK", 1)
 	return nil
 }

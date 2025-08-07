@@ -7,60 +7,63 @@ import (
 	"github.com/IBM/sarama"
 )
 
-type Consumer struct {
-	consumer sarama.Consumer
-	topic    string
+type ConsumerGroupHandler struct {
+	handlerFunc func(ctx context.Context, message []byte) error
 }
 
-func NewConsumer(brokers []string, topic string) (*Consumer, error) {
+func (h ConsumerGroupHandler) Setup(_ sarama.ConsumerGroupSession) error   { return nil }
+func (h ConsumerGroupHandler) Cleanup(_ sarama.ConsumerGroupSession) error { return nil }
+
+func (h ConsumerGroupHandler) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
+	for msg := range claim.Messages() {
+		err := h.handlerFunc(session.Context(), msg.Value)
+		if err != nil {
+			log.Printf("Ошибка обработки сообщения: %v", err)
+			continue
+		}
+		session.MarkMessage(msg, "")
+	}
+	return nil
+}
+
+type Consumer struct {
+	consumerGroup sarama.ConsumerGroup
+	topic         string
+}
+
+func NewConsumer(brokers []string, groupID, topic string) (*Consumer, error) {
 	config := sarama.NewConfig()
+	config.Version = sarama.V2_8_0_0
+	config.Consumer.Offsets.Initial = sarama.OffsetNewest
 	config.Consumer.Return.Errors = true
 
-	consumer, err := sarama.NewConsumer(brokers, config)
+	consumerGroup, err := sarama.NewConsumerGroup(brokers, groupID, config)
 	if err != nil {
 		return nil, err
 	}
 
 	return &Consumer{
-		consumer: consumer,
-		topic:    topic,
+		consumerGroup: consumerGroup,
+		topic:         topic,
 	}, nil
 }
 
 func (c *Consumer) Consume(ctx context.Context, handler func(ctx context.Context, message []byte) error) error {
-	partitionConsumer, err := c.consumer.ConsumePartition(c.topic, 0, sarama.OffsetNewest)
-	if err != nil {
-		return err
-	}
-
-	defer partitionConsumer.Close()
+	h := ConsumerGroupHandler{handlerFunc: handler}
 
 	for {
-		select {
-		case msg := <-partitionConsumer.Messages():
-			if err := handler(ctx, msg.Value); err != nil {
-				log.Printf("Ошибка обработки сообщения: %v", err)
-			}
-		case err := <-partitionConsumer.Errors():
-			log.Printf("Ошибка Kafka: %v", err)
-		case <-ctx.Done():
+		err := c.consumerGroup.Consume(ctx, []string{c.topic}, h)
+		if err != nil {
+			log.Printf("Ошибка в consumer group: %v", err)
+			return err
+		}
+
+		if ctx.Err() != nil {
 			return ctx.Err()
 		}
 	}
 }
 
-type NoopConsumer struct{}
-
-func NewNoopConsumer() *NoopConsumer {
-	return &NoopConsumer{}
-}
-
-func (c *NoopConsumer) Consume(ctx context.Context, handler func(ctx context.Context, message []byte) error) error {
-	log.Println("NoopConsumer: Kafka is disabled, no messages will be consumed")
-	<-ctx.Done()
-	return ctx.Err()
-}
-
 func (c *Consumer) Close() error {
-	return c.consumer.Close()
+	return c.consumerGroup.Close()
 }

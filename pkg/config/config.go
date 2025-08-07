@@ -38,7 +38,6 @@ type Config struct {
 func LoadConfig() *Config {
 	cfg := &Config{}
 
-	// Database config
 	cfg.DB.Host = getEnv("DB_HOST")
 	cfg.DB.Port = getEnv("DB_PORT")
 	cfg.DB.User = getEnv("DB_USER")
@@ -46,7 +45,6 @@ func LoadConfig() *Config {
 	cfg.DB.Name = getEnv("DB_NAME")
 	cfg.DB.SSLMode = getEnv("DB_SSLMODE")
 
-	// Redis config
 	cfg.Redis.Host = getEnv("REDIS_HOST")
 	cfg.Redis.Port = mustAtoi("REDIS_PORT", 6379)
 	cfg.Redis.Password = getEnv("REDIS_PASSWORD")
@@ -57,7 +55,6 @@ func LoadConfig() *Config {
 	cfg.Redis.PoolSize = mustAtoi("REDIS_POOL_SIZE", 10)
 	cfg.Redis.TLS = mustParseBool("REDIS_TLS", false)
 
-	// Kafka config
 	cfg.Kafka.Brokers = mustParseStringSlice("KAFKA_BROKERS", []string{"localhost:9092"})
 	cfg.Kafka.Topic = getEnvWithDefault("KAFKA_TOPIC", "orders")
 	cfg.Kafka.ConsumerGroup = getEnvWithDefault("KAFKA_CONSUMER_GROUP", "my-consumer-group")
@@ -131,7 +128,6 @@ func mustParseStringSlice(key string, defaultVal []string) []string {
 		return defaultVal
 	}
 
-	// Разделяем строку по запятым и убираем пробелы
 	parts := strings.Split(valStr, ",")
 	result := make([]string, 0, len(parts))
 	for _, part := range parts {

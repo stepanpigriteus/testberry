@@ -5,7 +5,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"testberry/internal/domain/service"
 	"testberry/internal/ports"
 )
 
@@ -15,7 +14,7 @@ type Server struct {
 	logger  ports.Logger
 }
 
-func NewServer(service *service.Service, addr string, logger ports.Logger) *Server {
+func NewServer(service ports.OrderService, addr string, logger ports.Logger) *Server {
 	return &Server{
 		handler: NewHandler(service, logger),
 		addr:    addr,
@@ -25,7 +24,7 @@ func NewServer(service *service.Service, addr string, logger ports.Logger) *Serv
 
 func (s *Server) RunServer(ctx context.Context) error {
 	if s.addr == "" {
-		s.logger.Error("Addr is not set")
+		s.logger.Error("Addr is not set", "addr", s.addr)
 		os.Exit(1)
 	}
 	mux := http.NewServeMux()

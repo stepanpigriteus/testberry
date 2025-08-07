@@ -52,7 +52,7 @@ func main() {
 	kafkaBrokers := cfg.Kafka.Brokers
 	kafkaTopic := cfg.Kafka.Topic
 
-	consumer, err := messagebrok.NewConsumer(kafkaBrokers, kafkaTopic)
+	consumer, err := messagebrok.NewConsumer(kafkaBrokers, "order-consumer-group", kafkaTopic)
 	if err != nil {
 		log.Fatalf("Failed to create Kafka consumer: %v", err)
 	}
