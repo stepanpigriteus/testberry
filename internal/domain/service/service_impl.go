@@ -40,7 +40,7 @@ func (s *Service) GetOrder(ctx context.Context, orderUID string) (order_entity.O
 	order, exists, err := s.cache.Get(ctx, orderUID)
 	if err != nil {
 		return order, err
-	}
+	}	
 	if exists {
 		return order, nil
 	}

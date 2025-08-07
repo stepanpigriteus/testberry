@@ -34,7 +34,7 @@ func (c *Cache) Set(ctx context.Context, order order_entity.Order) error {
 func (c *Cache) Get(ctx context.Context, orderUID string) (order_entity.Order, bool, error) {
 	val, err := c.client.Get(ctx, orderUID).Result()
 	if err == redis.Nil {
-		return order_entity.Order{}, false, nil 
+		return order_entity.Order{}, false, nil
 	}
 	if err != nil {
 		return order_entity.Order{}, false, err
