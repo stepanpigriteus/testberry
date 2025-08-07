@@ -1,6 +1,9 @@
 package postgres
 
-import "database/sql"
+import (
+	"database/sql"
+	"fmt"
+)
 
 func ConnectDB(connStr string) (*sql.DB, error) {
 	db, err := sql.Open("postgres", connStr)
@@ -9,7 +12,11 @@ func ConnectDB(connStr string) (*sql.DB, error) {
 	}
 
 	if err := db.Ping(); err != nil {
-		db.Close()
+		defer func() {
+			if err := db.Close(); err != nil {
+				fmt.Println("failed to close db", err)
+			}
+		}()
 		return nil, err
 	}
 

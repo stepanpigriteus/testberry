@@ -41,7 +41,11 @@ func main() {
 	if err != nil {
 		log.Fatalf("could not connect to db: %v", err)
 	}
-	defer db.Close()
+	defer func() {
+		if err := db.Close(); err != nil {
+			logger.Error("failed to close db", err)
+		}
+	}()
 
 	logger.Info("[3/7] Connecting to Redis")
 	redisAddr := fmt.Sprintf("%s:%d", cfg.Redis.Host, cfg.Redis.Port)
@@ -56,14 +60,22 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to create Kafka consumer: %v", err)
 	}
-	defer consumer.Close()
+	defer func() {
+		if err := consumer.Close(); err != nil {
+			logger.Error("failed to close kafka consumer", err)
+		}
+	}()
 
 	logger.Info("[5/7] Create Kafka Producer")
 	producer, err := messagebrok.NewProducer(kafkaBrokers, kafkaTopic)
 	if err != nil {
 		log.Fatalf("Failed to start Kafka producer: %v", err)
 	}
-	defer producer.Close()
+	defer func() {
+		if err := producer.Close(); err != nil {
+			logger.Error("failed to close kafka producer", err)
+		}
+	}()
 
 	service := service.NewService(repo, cacheClient, consumer, producer, logger)
 

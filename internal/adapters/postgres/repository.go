@@ -46,7 +46,7 @@ func (r *Repository) SaveOrder(ctx context.Context, order order_entity.Order) er
 		order.Delivery.Email,
 	).Scan(&deliveryID)
 	if err != nil {
-		r.logger.Error("Repo: Failed to insert delivery","err", err)
+		r.logger.Error("Repo: Failed to insert delivery", "err", err)
 		return err
 	}
 
@@ -66,7 +66,7 @@ func (r *Repository) SaveOrder(ctx context.Context, order order_entity.Order) er
 		order.Payment.CustomFee,
 	).Scan(&paymentID)
 	if err != nil {
-		r.logger.Error("Repo: Failed to insert payment","err", err)
+		r.logger.Error("Repo: Failed to insert payment", "err", err)
 		return err
 	}
 
@@ -110,12 +110,12 @@ func (r *Repository) SaveOrder(ctx context.Context, order order_entity.Order) er
 			order.OrderUID,
 		)
 		if err != nil {
-			r.logger.Error("Repo: Failed to insert item","err", err)
+			r.logger.Error("Repo: Failed to insert item", "err", err)
 			return err
 		}
 	}
 	if err = tx.Commit(); err != nil {
-		r.logger.Error("Repo: Failed to commit transaction","err", err)
+		r.logger.Error("Repo: Failed to commit transaction", "err", err)
 		return fmt.Errorf("failed to commit transaction: %w", err)
 	}
 	committed = true
@@ -181,7 +181,12 @@ func (r *Repository) GetOrderByID(ctx context.Context, orderUID string) (order_e
 	if err != nil {
 		return order, err
 	}
-	defer rows.Close()
+
+	defer func() {
+		if err := rows.Close(); err != nil {
+			r.logger.Error("failed to close rows: %v", err)
+		}
+	}()
 	for rows.Next() {
 		var item order_entity.Item
 		if err := rows.Scan(
@@ -218,7 +223,12 @@ func (r *Repository) RestoreCache(ctx context.Context) ([]order_entity.Order, er
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+
+	defer func() {
+		if err := rows.Close(); err != nil {
+			r.logger.Error("failed to close rows: %v", err)
+		}
+	}()
 
 	var orders []order_entity.Order
 
@@ -258,12 +268,22 @@ func (r *Repository) RestoreCache(ctx context.Context) ([]order_entity.Order, er
 			err := itemRows.Scan(&it.ChrtID, &it.TrackNumber, &it.Price, &it.Rid, &it.Name, &it.Sale,
 				&it.Size, &it.TotalPrice, &it.NmID, &it.Brand, &it.Status)
 			if err != nil {
-				itemRows.Close()
+				defer func() {
+					if err := itemRows.Close(); err != nil {
+						r.logger.Error("failed to close rows: %v", err)
+					}
+				}()
 				return nil, err
 			}
 			items = append(items, it)
 		}
-		itemRows.Close()
+
+		defer func() {
+			if err := itemRows.Close(); err != nil {
+				r.logger.Error("failed to close rows: %v", err)
+			}
+		}()
+
 		o.Items = items
 
 		orders = append(orders, o)

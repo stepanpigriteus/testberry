@@ -1,1 +1,2 @@
 # testberry
+golangci-lint --version
