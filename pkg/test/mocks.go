@@ -48,7 +48,7 @@ func (m *MockRepository) RestoreCache(ctx context.Context) ([]order_entity.Order
 
 func (m *MockRepository) SaveOrder(ctx context.Context, order order_entity.Order) error {
 	args := m.Called(ctx, order)
-	return args.Error(1)
+	return args.Error(0)
 }
 
 type MockCache struct {
@@ -65,6 +65,14 @@ func (m *MockCache) Set(ctx context.Context, o order_entity.Order) error {
 	return args.Error(0)
 }
 
+type MockConsumer struct {
+	ConsumeFunc func(ctx context.Context, handler func(context.Context, []byte) error) error
+}
+
+func (m *MockConsumer) Consume(ctx context.Context, handler func(context.Context, []byte) error) error {
+	return m.ConsumeFunc(ctx, handler)
+}
+
 type TestLogger struct{}
 
 func (l *TestLogger) Info(msg string, keysAndValues ...interface{})  {}
@@ -73,15 +81,16 @@ func (l *TestLogger) Warn(msg string, keysAndValues ...interface{})  {}
 func (l *TestLogger) Debug(msg string, keysAndValues ...interface{}) {}
 
 var Test_order order_entity.Order = order_entity.Order{
-	OrderUID:    "12345678901234567890",
-	TrackNumber: "WBILMTESTTRACK",
-	Entry:       "WBIL",
-	CustomerID:  "test",
-	Locale:      "en",
-	Shardkey:    "9",
-	SmID:        99,
-	DateCreated: time.Now(),
-	OofShard:    "1",
+	OrderUID:        "12345678901234567890",
+	TrackNumber:     "WBILMTESTTRACK",
+	Entry:           "WBIL",
+	CustomerID:      "test",
+	Locale:          "en",
+	Shardkey:        "9",
+	SmID:            99,
+	DateCreated:     time.Now(),
+	OofShard:        "1",
+	DeliveryService: "DHL",
 	Delivery: order_entity.Delivery{
 		Name:    "Test User",
 		Phone:   "+79001234567",
@@ -93,7 +102,7 @@ var Test_order order_entity.Order = order_entity.Order{
 	},
 	Payment: order_entity.Payment{
 		Transaction:  "b563feb7b2b84b6test",
-		RequestID:    "",
+		RequestID:    "req123",
 		Currency:     "USD",
 		Provider:     "wbpay",
 		Amount:       1817,
